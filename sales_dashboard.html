@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Command Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0F2C;
+    --card:#111936;
+    --cyan:#00D4FF;
+    --lime:#39FF8F;
+    --amber:#FFB627;
+    --coral:#FF4E5B;
+    --text:#FFFFFF;
+    --soft:#8A9BC7;
+    --line: rgba(138,155,199,0.15);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Exo 2', sans-serif;
+    min-width:1280px;
+    overflow-x:auto;
+  }
+  .num, .kpi-value, .gauge-value, .pill-value{
+    font-family:'Rajdhani', sans-serif;
+    font-weight:700;
+    letter-spacing:0.5px;
+  }
+  .dashboard{
+    max-width:1600px;
+    margin:0 auto;
+    padding:28px 32px 40px;
+  }
+  .top-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:22px;
+  }
+  .top-header h1{
+    font-family:'Rajdhani', sans-serif;
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .top-header .subtitle{
+    color:var(--soft);
+    font-size:13px;
+    margin-top:2px;
+  }
+  .live-dot{
+    display:inline-block;
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--lime);
+    box-shadow:0 0 8px var(--lime);
+    margin-right:8px;
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:0.35;}
+  }
+
+  /* ---- Card base ---- */
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    border:1px solid rgba(138,155,199,0.08);
+    padding:18px 20px;
+    position:relative;
+    transition:transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .card:hover{ transform:translateY(-2px); }
+  .glow-cyan{ box-shadow:0 0 0 1px rgba(0,212,255,0.08), 0 8px 24px -6px rgba(0,212,255,0.25); }
+  .glow-lime{ box-shadow:0 0 0 1px rgba(57,255,143,0.08), 0 8px 24px -6px rgba(57,255,143,0.25); }
+  .glow-amber{ box-shadow:0 0 0 1px rgba(255,182,39,0.08), 0 8px 24px -6px rgba(255,182,39,0.25); }
+  .glow-coral{ box-shadow:0 0 0 1px rgba(255,78,91,0.08), 0 8px 24px -6px rgba(255,78,91,0.25); }
+
+  .card-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1.2px;
+    color:var(--soft);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+
+  /* ---- ROW 1: KPI STRIP ---- */
+  .kpi-strip{
+    display:grid;
+    grid-template-columns: 200px 1fr 1fr 220px 240px;
+    gap:16px;
+    margin-bottom:16px;
+  }
+  .selector-card{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:10px;
+  }
+  .selector-card .brand{
+    display:flex;
+    align-items:center;
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:17px;
+  }
+  select#productSelect{
+    background:#0A0F2C;
+    color:var(--text);
+    border:1px solid rgba(0,212,255,0.35);
+    border-radius:8px;
+    padding:8px 10px;
+    font-family:'Exo 2', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    outline:none;
+    cursor:pointer;
+  }
+  select#productSelect:focus{ box-shadow:0 0 0 2px rgba(0,212,255,0.3); }
+
+  .kpi-card{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .kpi-value{
+    font-size:30px;
+    color:var(--text);
+    line-height:1;
+  }
+  .kpi-sub{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:8px;
+    font-size:12px;
+    color:var(--soft);
+  }
+  .delta-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    padding:2px 7px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:700;
+    font-family:'Rajdhani',sans-serif;
+  }
+  .delta-up{ color:var(--lime); background:rgba(57,255,143,0.12); }
+  .delta-down{ color:var(--coral); background:rgba(255,78,91,0.12); }
+
+  .kpi-card.highlight{
+    background:linear-gradient(155deg, rgba(0,212,255,0.16), rgba(17,25,54,1) 65%);
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .kpi-card.highlight .kpi-value{
+    font-size:44px;
+    color:var(--cyan);
+    text-shadow:0 0 18px rgba(0,212,255,0.5);
+  }
+  .kpi-card.highlight .card-label{ color:#bfe9ff; }
+
+  .pills-col{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    justify-content:center;
+  }
+  .pill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:rgba(255,255,255,0.02);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:7px 10px;
+  }
+  .pill-icon{
+    width:26px; height:26px;
+    border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .pill-icon svg{ width:15px; height:15px; }
+  .pill-text{ display:flex; flex-direction:column; line-height:1.2; }
+  .pill-label{ font-size:10px; color:var(--soft); text-transform:uppercase; letter-spacing:0.8px; }
+  .pill-value{ font-size:16px; }
+
+  /* ---- Divider ---- */
+  .divider{
+    height:1px;
+    background:var(--line);
+    margin:22px 0;
+  }
+
+  /* ---- ROW 2: GAUGES ---- */
+  .gauge-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:16px;
+    margin-bottom:16px;
+  }
+  .gauge-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    min-height:220px;
+  }
+  .gauge-card .card-label{ align-self:flex-start; }
+  .gauge-value{
+    font-size:26px;
+    margin-top:4px;
+  }
+  .gauge-caption{
+    font-size:11px;
+    color:var(--soft);
+    margin-top:2px;
+  }
+
+  /* ---- ROW 3: CHARTS ---- */
+  .charts-row{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  .chart-card{ min-height:280px; }
+  .chart-card .card-label{ margin-bottom:2px; }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:6px;
+    margin-bottom:6px;
+  }
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    font-size:10.5px;
+    color:var(--soft);
+  }
+  .legend-swatch{
+    width:9px; height:9px;
+    border-radius:2px;
+  }
+
+  /* tooltip */
+  .tooltip{
+    position:absolute;
+    pointer-events:none;
+    background:#050915;
+    border:1px solid rgba(0,212,255,0.35);
+    color:var(--text);
+    font-size:11.5px;
+    padding:6px 9px;
+    border-radius:7px;
+    white-space:nowrap;
+    opacity:0;
+    transform:translate(-50%,-115%);
+    transition:opacity 0.12s ease;
+    z-index:20;
+    font-family:'Exo 2', sans-serif;
+  }
+  .tooltip.show{ opacity:1; }
+  .tooltip .tt-title{ color:var(--soft); font-size:10px; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:2px; }
+
+  svg text{ font-family:'Exo 2', sans-serif; }
+  .bar-seg, .line-hit, .area-hit, .donut-seg{ cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <div class="top-header">
+    <div>
+      <h1><span class="live-dot"></span>Sales Command Dashboard</h1>
+      <div class="subtitle">Live performance across your product portfolio</div>
+    </div>
+    <div class="subtitle" id="periodLabel">Period: Jan – Jun 2026</div>
+  </div>
+
+  <!-- ROW 1: KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="card selector-card glow-cyan">
+      <div class="card-label">Product</div>
+      <div class="brand" id="brandName">SaaS Pro</div>
+      <select id="productSelect">
+        <option value="p1">SaaS Pro</option>
+        <option value="p2">Growth Suite</option>
+        <option value="p3">Enterprise Suite</option>
+      </select>
+    </div>
+
+    <div class="card kpi-card glow-lime">
+      <div class="card-label">Total Revenue</div>
+      <div class="kpi-value num" id="revenueValue">$0</div>
+      <div class="kpi-sub">
+        <span id="revenueDelta" class="delta-badge delta-up">▲ 0%</span>
+        <span>vs last month (<span id="revenueLast">$0</span>)</span>
+      </div>
+    </div>
+
+    <div class="card kpi-card glow-amber">
+      <div class="card-label">Units Sold</div>
+      <div class="kpi-value num" id="unitsValue">0</div>
+      <div class="kpi-sub">
+        <span id="unitsDelta" class="delta-badge delta-up">▲ 0%</span>
+        <span>vs last month (<span id="unitsLast">0</span>)</span>
+      </div>
+    </div>
+
+    <div class="card kpi-card highlight glow-cyan">
+      <div class="card-label">Conversion Rate</div>
+      <div class="kpi-value num" id="conversionValue">0%</div>
+      <div class="gauge-caption">of qualified leads</div>
+    </div>
+
+    <div class="pills-col">
+      <div class="card pill glow-lime">
+        <div class="pill-icon" style="background:rgba(57,255,143,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#39FF8F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a1 1 0 0 0-1 1c0 3 2 5 4.5 5.3M17 5h3a1 1 0 0 1 1 1c0 3-2 5-4.5 5.3"/></svg>
+        </div>
+        <div class="pill-text">
+          <span class="pill-label">Win Rate</span>
+          <span class="pill-value num" id="winRateValue">0%</span>
+        </div>
+      </div>
+      <div class="card pill glow-amber">
+        <div class="pill-icon" style="background:rgba(255,182,39,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FFB627" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1.1 1.1-2 2.5-2s2.5.7 2.5 1.8c0 2.4-5 1.4-5 3.9 0 1.1 1.1 1.8 2.5 1.8s2.5-.9 2.5-2"/></svg>
+        </div>
+        <div class="pill-text">
+          <span class="pill-label">Avg Deal Size</span>
+          <span class="pill-value num" id="avgDealValue">$0</span>
+        </div>
+      </div>
+      <div class="card pill glow-coral">
+        <div class="pill-icon" style="background:rgba(255,78,91,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FF4E5B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6 8v6l-4 2v-8L4 4Z"/></svg>
+        </div>
+        <div class="pill-text">
+          <span class="pill-label">Pipeline Value</span>
+          <span class="pill-value num" id="pipelineValue">$0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ROW 2: GAUGES -->
+  <div class="gauge-row">
+    <div class="card gauge-card glow-cyan">
+      <div class="card-label">Sales Performance Score</div>
+      <div id="circGaugeWrap"></div>
+      <div class="gauge-value num" id="circGaugeValue" style="color:var(--cyan);">0</div>
+      <div class="gauge-caption">out of 100</div>
+    </div>
+    <div class="card gauge-card glow-lime">
+      <div class="card-label">Customer Retention</div>
+      <div id="donutWrap"></div>
+      <div class="gauge-caption" id="donutCaption">Retained vs Churned</div>
+    </div>
+    <div class="card gauge-card glow-amber">
+      <div class="card-label">Lead Quality Index</div>
+      <div id="hBarGaugeWrap"></div>
+      <div class="gauge-value num" id="hBarGaugeValue" style="color:var(--amber);">0</div>
+      <div class="gauge-caption">scale −100 to 100</div>
+    </div>
+    <div class="card gauge-card glow-coral">
+      <div class="card-label">Target Achievement</div>
+      <div id="semiGaugeWrap"></div>
+      <div class="gauge-value num" id="semiGaugeValue" style="color:var(--coral); margin-top:-28px;">0%</div>
+      <div class="gauge-caption">of quarterly quota</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ROW 3: CHARTS -->
+  <div class="charts-row">
+    <div class="card chart-card glow-cyan">
+      <div class="card-label">Revenue Breakdown by Region</div>
+      <div class="legend" id="stackedLegend"></div>
+      <div id="stackedBarWrap" style="position:relative;"></div>
+    </div>
+    <div class="card chart-card glow-lime">
+      <div class="card-label">Monthly Revenue Trend</div>
+      <div id="lineChartWrap" style="position:relative;"></div>
+    </div>
+    <div class="card chart-card glow-amber">
+      <div class="card-label">Conversion Rate Over Month</div>
+      <div id="areaChartWrap" style="position:relative;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="tooltip" id="tooltip"><div class="tt-title" id="ttTitle"></div><div id="ttBody"></div></div>
+
+<script>
+/* =========================================================
+   DATA
+========================================================= */
+const DATA = {
+  p1: {
+    name:"SaaS Pro",
+    revenue:{current:482000,last:441000},
+    units:{current:3120,last:2890},
+    conversion:24.6,
+    winRate:38,
+    avgDealSize:15450,
+    pipelineValue:1280000,
+    salesScore:82,
+    retention:{retained:88,churned:12},
+    leadQuality:74,
+    targetAchievement:91,
+    months:["Jan","Feb","Mar","Apr","May","Jun"],
+    monthlyRevenue:[310,335,362,398,441,482],
+    conversionSeries:[18.2,19.5,20.8,22.1,23.4,24.6],
+    regions:["NA","EMEA","APAC","LATAM","MEA"],
+    regionData:{
+      NA:[120,45,60,25], EMEA:[90,38,52,20], APAC:[75,30,40,15],
+      LATAM:[40,18,22,10], MEA:[25,12,15,8]
+    }
+  },
+  p2: {
+    name:"Growth Suite",
+    revenue:{current:316000,last:338000},
+    units:{current:2210,last:2380},
+    conversion:19.8,
+    winRate:31,
+    avgDealSize:11200,
+    pipelineValue:890000,
+    salesScore:68,
+    retention:{retained:79,churned:21},
+    leadQuality:42,
+    targetAchievement:74,
+    months:["Jan","Feb","Mar","Apr","May","Jun"],
+    monthlyRevenue:[295,312,328,341,338,316],
+    conversionSeries:[21.4,20.9,20.1,20.5,20.0,19.8],
+    regions:["NA","EMEA","APAC","LATAM","MEA"],
+    regionData:{
+      NA:[80,30,45,18], EMEA:[65,25,38,14], APAC:[55,20,30,10],
+      LATAM:[30,12,18,7], MEA:[18,8,10,5]
+    }
+  },
+  p3: {
+    name:"Enterprise Suite",
+    revenue:{current:725000,last:652000},
+    units:{current:1180,last:1050},
+    conversion:31.2,
+    winRate:46,
+    avgDealSize:61500,
+    pipelineValue:2400000,
+    salesScore:90,
+    retention:{retained:93,churned:7},
+    leadQuality:88,
+    targetAchievement:104,
+    months:["Jan","Feb","Mar","Apr","May","Jun"],
+    monthlyRevenue:[520,558,601,648,682,725],
+    conversionSeries:[26.1,27.4,28.8,29.6,30.5,31.2],
+    regions:["NA","EMEA","APAC","LATAM","MEA"],
+    regionData:{
+      NA:[180,70,90,40], EMEA:[140,55,72,32], APAC:[110,45,58,25],
+      LATAM:[60,25,30,14], MEA:[35,15,18,9]
+    }
+  }
+};
+
+const SEGMENT_COLORS = { New:"#00D4FF", Upsell:"#39FF8F", Renewal:"#FFB627", Partner:"#FF4E5B" };
+const SEGMENTS = ["New","Upsell","Renewal","Partner"];
+
+/* =========================================================
+   HELPERS
+========================================================= */
+function fmtCurrency(v){
+  if(Math.abs(v) >= 1000000) return "$" + (v/1000000).toFixed(2) + "M";
+  if(Math.abs(v) >= 1000) return "$" + Math.round(v/1000) + "K";
+  return "$" + Math.round(v);
+}
+function fmtCurrencyFull(v){
+  return "$" + Math.round(v).toLocaleString("en-US");
+}
+function fmtNumber(v){ return Math.round(v).toLocaleString("en-US"); }
+
+function easeOutCubic(t){ return 1 - Math.pow(1-t,3); }
+
+function animateValue(from,to,duration,onUpdate,onDone){
+  const start = performance.now();
+  function tick(now){
+    let t = Math.min(1,(now-start)/duration);
+    const eased = easeOutCubic(t);
+    const val = from + (to-from)*eased;
+    onUpdate(val, t);
+    if(t<1){ requestAnimationFrame(tick); } else if(onDone){ onDone(); }
+  }
+  requestAnimationFrame(tick);
+}
+
+function polarToCartesian(cx,cy,r,angleDeg){
+  const a = (angleDeg-90) * Math.PI/180;
+  return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+}
+function describeArc(cx,cy,r,startAngle,endAngle){
+  const start = polarToCartesian(cx,cy,r,endAngle);
+  const end = polarToCartesian(cx,cy,r,startAngle);
+  const largeArc = endAngle-startAngle <= 180 ? "0" : "1";
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+}
+
+const tooltipEl = document.getElementById("tooltip");
+const ttTitle = document.getElementById("ttTitle");
+const ttBody = document.getElementById("ttBody");
+function showTooltip(evt, title, body){
+  ttTitle.textContent = title;
+  ttBody.innerHTML = body;
+  tooltipEl.classList.add("show");
+  moveTooltip(evt);
+}
+function moveTooltip(evt){
+  const rect = document.body.getBoundingClientRect();
+  tooltipEl.style.left = (evt.clientX - rect.left) + "px";
+  tooltipEl.style.top = (evt.clientY - rect.top) + "px";
+}
+function hideTooltip(){ tooltipEl.classList.remove("show"); }
+
+let currentKey = "p1";
+let prevValues = null; // store last-rendered raw values for counter animation base
+
+/* =========================================================
+   ANIMATED COUNTERS FOR KPIs
+========================================================= */
+function setKPIs(data, animate){
+  const dur = animate ? 900 : 0;
+
+  document.getElementById("brandName").textContent = data.name;
+
+  // Revenue
+  animateValue(prevValues? prevValues.revenue : 0, data.revenue.current, dur, v=>{
+    document.getElementById("revenueValue").textContent = fmtCurrency(v);
+  });
+  document.getElementById("revenueLast").textContent = fmtCurrency(data.revenue.last);
+  const revDeltaPct = ((data.revenue.current - data.revenue.last)/data.revenue.last*100);
+  const revBadge = document.getElementById("revenueDelta");
+  revBadge.textContent = (revDeltaPct>=0?"▲ ":"▼ ") + Math.abs(revDeltaPct).toFixed(1) + "%";
+  revBadge.className = "delta-badge " + (revDeltaPct>=0 ? "delta-up":"delta-down");
+
+  // Units
+  animateValue(prevValues? prevValues.units : 0, data.units.current, dur, v=>{
+    document.getElementById("unitsValue").textContent = fmtNumber(v);
+  });
+  document.getElementById("unitsLast").textContent = fmtNumber(data.units.last);
+  const unitsDeltaPct = ((data.units.current - data.units.last)/data.units.last*100);
+  const unitsBadge = document.getElementById("unitsDelta");
+  unitsBadge.textContent = (unitsDeltaPct>=0?"▲ ":"▼ ") + Math.abs(unitsDeltaPct).toFixed(1) + "%";
+  unitsBadge.className = "delta-badge " + (unitsDeltaPct>=0 ? "delta-up":"delta-down");
+
+  // Conversion
+  animateValue(prevValues? prevValues.conversion : 0, data.conversion, dur, v=>{
+    document.getElementById("conversionValue").textContent = v.toFixed(1) + "%";
+  });
+
+  // Pills
+  animateValue(prevValues? prevValues.winRate : 0, data.winRate, dur, v=>{
+    document.getElementById("winRateValue").textContent = Math.round(v) + "%";
+  });
+  animateValue(prevValues? prevValues.avgDealSize : 0, data.avgDealSize, dur, v=>{
+    document.getElementById("avgDealValue").textContent = fmtCurrency(v);
+  });
+  animateValue(prevValues? prevValues.pipelineValue : 0, data.pipelineValue, dur, v=>{
+    document.getElementById("pipelineValue").textContent = fmtCurrency(v);
+  });
+
+  prevValues = {
+    revenue:data.revenue.current, units:data.units.current, conversion:data.conversion,
+    winRate:data.winRate, avgDealSize:data.avgDealSize, pipelineValue:data.pipelineValue
+  };
+}
+
+/* =========================================================
+   GAUGE 1: CIRCULAR (Sales Performance Score, 0-100)
+========================================================= */
+let circGaugeState = { value: 0 };
+function renderCircGauge(){
+  const wrap = document.getElementById("circGaugeWrap");
+  const size = 150, cx = size/2, cy = size/2, r = 58;
+  const startA = -125, endA = 125; // 250 degree sweep
+  const bgPath = describeArc(cx,cy,r,startA,endA);
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${size} ${size}" width="150" height="150">
+      <path d="${bgPath}" fill="none" stroke="rgba(138,155,199,0.15)" stroke-width="10" stroke-linecap="round"/>
+      <path id="circProgress" d="${bgPath}" fill="none" stroke="#00D4FF" stroke-width="10" stroke-linecap="round"
+        stroke-dasharray="0 1000" style="filter:drop-shadow(0 0 6px rgba(0,212,255,0.7));"/>
+      <g id="circNeedleGroup" style="transform-origin:${cx}px ${cy}px;">
+        <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-r+6}" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="4.5" fill="#FFFFFF"/>
+      </g>
+    </svg>`;
+  updateCircGauge(0, false);
+}
+// total path length approximation via getTotalLength after render
+function updateCircGauge(target, animate){
+  const progressEl = document.getElementById("circProgress");
+  const needleGroup = document.getElementById("circNeedleGroup");
+  const totalLen = progressEl.getTotalLength();
+  const startA = -125, sweep = 250;
+  const from = circGaugeState.value;
+  animateValue(from, target, animate?1100:0, (v)=>{
+    const frac = v/100;
+    progressEl.setAttribute("stroke-dasharray", `${frac*totalLen} ${totalLen}`);
+    const angle = startA + sweep*frac;
+    needleGroup.style.transform = `rotate(${angle}deg)`;
+    document.getElementById("circGaugeValue").textContent = Math.round(v);
+  }, ()=>{ circGaugeState.value = target; });
+}
+
+/* =========================================================
+   GAUGE 2: DONUT (Retention vs Churned)
+========================================================= */
+let donutState = { retained: 0 };
+function renderDonut(){
+  const wrap = document.getElementById("donutWrap");
+  const size = 150, cx = size/2, cy = size/2, r = 52;
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${size} ${size}" width="150" height="150">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(138,155,199,0.12)" stroke-width="16"/>
+      <path id="donutRetained" class="donut-seg" fill="none" stroke="#39FF8F" stroke-width="16" stroke-dasharray="0 1000"/>
+      <path id="donutChurned" class="donut-seg" fill="none" stroke="#FF4E5B" stroke-width="16" stroke-dasharray="0 1000"/>
+      <text id="donutCenterText" x="${cx}" y="${cy+6}" text-anchor="middle" font-size="22" font-weight="700" fill="#FFFFFF" font-family="Rajdhani, sans-serif">0%</text>
+    </svg>`;
+}
+function updateDonut(retained, churned, animate){
+  const cx=75, cy=75, r=52;
+  const circumference = 2*Math.PI*r;
+  const retainedPath = document.getElementById("donutRetained");
+  const churnedPath = document.getElementById("donutChurned");
+  const centerText = document.getElementById("donutCenterText");
+  // static positioning start at top
+  retainedPath.setAttribute("d", `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx-0.001} ${cy-r}`);
+  churnedPath.setAttribute("d", `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx-0.001} ${cy-r}`);
+  churnedPath.setAttribute("transform", "");
+  const from = donutState.retained;
+  animateValue(from, retained, animate?1000:0, (v)=>{
+    const retFrac = v/100;
+    const churnFrac = 1-retFrac;
+    retainedPath.setAttribute("stroke-dasharray", `${retFrac*circumference} ${circumference}`);
+    churnedPath.setAttribute("stroke-dasharray", `${churnFrac*circumference} ${circumference}`);
+    churnedPath.setAttribute("stroke-dashoffset", `${-retFrac*circumference}`);
+    centerText.textContent = Math.round(v) + "%";
+  }, ()=>{ donutState.retained = retained; });
+  document.getElementById("donutCaption").innerHTML =
+    `<span style="color:#39FF8F">● Retained ${retained}%</span> &nbsp; <span style="color:#FF4E5B">● Churned ${churned}%</span>`;
+}
+
+/* =========================================================
+   GAUGE 3: HORIZONTAL BAR (Lead Quality Index -100..100)
+========================================================= */
+let hBarState = { value: 0 };
+function renderHBarGauge(){
+  const wrap = document.getElementById("hBarGaugeWrap");
+  const w = 190, h = 60;
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" width="190" height="60">
+      <defs>
+        <linearGradient id="hbarGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#FF4E5B"/>
+          <stop offset="50%" stop-color="#FFB627"/>
+          <stop offset="100%" stop-color="#39FF8F"/>
+        </linearGradient>
+      </defs>
+      <rect x="10" y="26" width="${w-20}" height="8" rx="4" fill="url(#hbarGrad)" opacity="0.85"/>
+      <line x1="${w/2}" y1="20" x2="${w/2}" y2="40" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+      <polygon id="hbarNeedle" points="0,14 -6,26 6,26" fill="#FFFFFF" style="filter:drop-shadow(0 0 4px rgba(255,255,255,0.6));"/>
+      <text x="10" y="52" font-size="9" fill="#8A9BC7">-100</text>
+      <text x="${w-24}" y="52" font-size="9" fill="#8A9BC7">100</text>
+    </svg>`;
+}
+function updateHBarGauge(target, animate){
+  const needle = document.getElementById("hbarNeedle");
+  const w = 190;
+  const usableW = w-20;
+  const from = hBarState.value;
+  animateValue(from, target, animate?1100:0, (v)=>{
+    const frac = (v+100)/200; // 0..1
+    const x = 10 + frac*usableW;
+    needle.setAttribute("transform", `translate(${x},0)`);
+    document.getElementById("hBarGaugeValue").textContent = Math.round(v);
+  }, ()=>{ hBarState.value = target; });
+}
+
+/* =========================================================
+   GAUGE 4: SEMI-CIRCLE (Target Achievement %)
+========================================================= */
+let semiState = { value: 0 };
+function renderSemiGauge(){
+  const wrap = document.getElementById("semiGaugeWrap");
+  const size = 170, cx = size/2, cy = 100, r = 62;
+  const bgPath = describeArc(cx,cy,r,-90,90);
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${size} 110" width="170" height="100">
+      <path d="${bgPath}" fill="none" stroke="rgba(138,155,199,0.15)" stroke-width="12" stroke-linecap="round"/>
+      <path id="semiProgress" d="${bgPath}" fill="none" stroke="#FF4E5B" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 1000"
+        style="filter:drop-shadow(0 0 6px rgba(255,78,91,0.6));"/>
+      <g id="semiNeedleGroup" style="transform-origin:${cx}px ${cy}px;">
+        <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-r+8}" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="4" fill="#FFFFFF"/>
+      </g>
+    </svg>`;
+}
+function updateSemiGauge(target, animate){
+  const progressEl = document.getElementById("semiProgress");
+  const needleGroup = document.getElementById("semiNeedleGroup");
+  const totalLen = progressEl.getTotalLength();
+  const clampedTarget = Math.min(target,100);
+  const from = semiState.value;
+  animateValue(from, clampedTarget, animate?1100:0, (v)=>{
+    const frac = v/100;
+    progressEl.setAttribute("stroke-dasharray", `${frac*totalLen} ${totalLen}`);
+    const angle = -90 + 180*frac;
+    needleGroup.style.transform = `rotate(${angle}deg)`;
+  }, ()=>{ semiState.value = clampedTarget; });
+  animateValue(prevValues? prevValues.targetAchievement||0 : 0, target, animate?1100:0, v=>{
+    document.getElementById("semiGaugeValue").textContent = Math.round(v) + "%";
+  });
+}
+
+/* =========================================================
+   CHART 1: STACKED BAR (Revenue by Region x Segment)
+========================================================= */
+function renderStackedLegend(){
+  const legend = document.getElementById("stackedLegend");
+  legend.innerHTML = SEGMENTS.map(s =>
+    `<div class="legend-item"><span class="legend-swatch" style="background:${SEGMENT_COLORS[s]}"></span>${s}</div>`
+  ).join("");
+}
+function renderStackedBar(data, animate){
+  const wrap = document.getElementById("stackedBarWrap");
+  const w = 460, h = 210, padL = 34, padB = 24, padT = 10;
+  const chartW = w - padL - 10, chartH = h - padB - padT;
+  const regions = data.regions;
+  const barCount = regions.length;
+  const gap = 18;
+  const barW = (chartW - gap*(barCount-1)) / barCount;
+
+  const totals = regions.map(r => data.regionData[r].reduce((a,b)=>a+b,0));
+  const maxTotal = Math.max(...totals) * 1.15;
+
+  let bars = "";
+  regions.forEach((region, i)=>{
+    const values = data.regionData[region];
+    let yCursor = padT + chartH;
+    const x = padL + i*(barW+gap);
+    values.forEach((val, si)=>{
+      const segH = (val/maxTotal)*chartH;
+      yCursor -= segH;
+      bars += `<rect class="bar-seg" data-region="${region}" data-seg="${SEGMENTS[si]}" data-val="${val}"
+        x="${x}" y="${padT+chartH}" width="${barW}" height="0" rx="2"
+        fill="${SEGMENT_COLORS[SEGMENTS[si]]}"
+        data-target-y="${yCursor}" data-target-h="${segH}"></rect>`;
+    });
+    bars += `<text x="${x+barW/2}" y="${h-6}" text-anchor="middle" font-size="10.5" fill="#8A9BC7">${region}</text>`;
+  });
+
+  // gridlines
+  let grid = "";
+  for(let g=0; g<=4; g++){
+    const gy = padT + chartH - (g/4)*chartH;
+    grid += `<line x1="${padL}" y1="${gy}" x2="${w-10}" y2="${gy}" stroke="rgba(138,155,199,0.08)" stroke-width="1"/>`;
+    grid += `<text x="${padL-6}" y="${gy+3}" text-anchor="end" font-size="9" fill="#8A9BC7">${fmtCurrency(g/4*maxTotal*1000)}</text>`;
+  }
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="210">${grid}${bars}</svg>`;
+
+  const rects = wrap.querySelectorAll(".bar-seg");
+  rects.forEach((rect, idx)=>{
+    const targetY = parseFloat(rect.getAttribute("data-target-y"));
+    const targetH = parseFloat(rect.getAttribute("data-target-h"));
+    animateValue(0, 1, animate ? 800 + idx*12 : 0, (t)=>{
+      const eased = t;
+      rect.setAttribute("y", padT+chartH - (padT+chartH-targetY)*eased);
+      rect.setAttribute("height", targetH*eased);
+    });
+    rect.addEventListener("mousemove", (evt)=>{
+      const region = rect.getAttribute("data-region");
+      const seg = rect.getAttribute("data-seg");
+      const val = rect.getAttribute("data-val");
+      showTooltip(evt, `${region} — ${seg}`, `${fmtCurrency(val*1000)}`);
+    });
+    rect.addEventListener("mouseleave", hideTooltip);
+  });
+}
+
+/* =========================================================
+   CHART 2: LINE CHART (Monthly Revenue) with gradient fill
+========================================================= */
+function renderLineChart(data, animate){
+  const wrap = document.getElementById("lineChartWrap");
+  const w = 460, h = 210, padL = 38, padB = 24, padT = 14, padR = 10;
+  const chartW = w - padL - padR, chartH = h - padB - padT;
+  const months = data.months;
+  const values = data.monthlyRevenue;
+  const maxV = Math.max(...values) * 1.15;
+  const minV = 0;
+
+  const pts = values.map((v,i)=>{
+    const x = padL + (i/(values.length-1))*chartW;
+    const y = padT + chartH - ((v-minV)/(maxV-minV))*chartH;
+    return {x,y,v};
+  });
+
+  const linePath = pts.map((p,i)=> (i===0? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ");
+  const areaPath = linePath + ` L ${pts[pts.length-1].x} ${padT+chartH} L ${pts[0].x} ${padT+chartH} Z`;
+
+  let grid = "";
+  for(let g=0; g<=4; g++){
+    const gy = padT + chartH - (g/4)*chartH;
+    grid += `<line x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}" stroke="rgba(138,155,199,0.08)" stroke-width="1"/>`;
+    grid += `<text x="${padL-6}" y="${gy+3}" text-anchor="end" font-size="9" fill="#8A9BC7">${fmtCurrency(g/4*maxV*1000)}</text>`;
+  }
+  let xlabels = months.map((m,i)=> `<text x="${pts[i].x}" y="${h-6}" text-anchor="middle" font-size="10" fill="#8A9BC7">${m}</text>`).join("");
+
+  let dots = pts.map((p,i)=> `<circle class="line-hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="10" fill="transparent"/>
+    <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#39FF8F" stroke="#0A0F2C" stroke-width="1.5"/>`).join("");
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="210">
+      <defs>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#39FF8F" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#39FF8F" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${grid}
+      <path id="lineArea" d="${areaPath}" fill="url(#lineGrad)" opacity="0"/>
+      <path id="lineStroke" d="${linePath}" fill="none" stroke="#39FF8F" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 5px rgba(57,255,143,0.5));"/>
+      ${dots}
+      ${xlabels}
+    </svg>`;
+
+  const strokeEl = document.getElementById("lineStroke");
+  const areaEl = document.getElementById("lineArea");
+  const len = strokeEl.getTotalLength();
+  strokeEl.style.strokeDasharray = len;
+  strokeEl.style.strokeDashoffset = animate ? len : 0;
+  animateValue(0,1, animate?1100:0, (t)=>{
+    strokeEl.style.strokeDashoffset = len*(1-t);
+    areaEl.style.opacity = t;
+  });
+
+  wrap.querySelectorAll(".line-hit").forEach(hit=>{
+    hit.addEventListener("mousemove", (evt)=>{
+      const i = +hit.getAttribute("data-i");
+      showTooltip(evt, months[i], fmtCurrency(values[i]*1000));
+    });
+    hit.addEventListener("mouseleave", hideTooltip);
+  });
+}
+
+/* =========================================================
+   CHART 3: AREA/BAR (Conversion Rate Over Month) in cyan
+========================================================= */
+function renderAreaChart(data, animate){
+  const wrap = document.getElementById("areaChartWrap");
+  const w = 460, h = 210, padL = 34, padB = 24, padT = 14, padR = 10;
+  const chartW = w - padL - padR, chartH = h - padB - padT;
+  const months = data.months;
+  const values = data.conversionSeries;
+  const maxV = Math.max(...values) * 1.25;
+  const barCount = values.length;
+  const gap = 14;
+  const barW = (chartW - gap*(barCount-1))/barCount;
+
+  let grid = "";
+  for(let g=0; g<=4; g++){
+    const gy = padT + chartH - (g/4)*chartH;
+    grid += `<line x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}" stroke="rgba(138,155,199,0.08)" stroke-width="1"/>`;
+    grid += `<text x="${padL-6}" y="${gy+3}" text-anchor="end" font-size="9" fill="#8A9BC7">${(g/4*maxV).toFixed(0)}%</text>`;
+  }
+
+  let bars = "";
+  values.forEach((v,i)=>{
+    const x = padL + i*(barW+gap);
+    const targetH = (v/maxV)*chartH;
+    const targetY = padT + chartH - targetH;
+    bars += `<rect class="area-hit" data-i="${i}" x="${x}" y="${padT+chartH}" width="${barW}" height="0" rx="4"
+      fill="url(#cyanGrad)" data-target-y="${targetY}" data-target-h="${targetH}"
+      style="filter:drop-shadow(0 0 5px rgba(0,212,255,0.4));"></rect>`;
+  });
+  let xlabels = values.map((v,i)=>{
+    const x = padL + i*(barW+gap) + barW/2;
+    return `<text x="${x}" y="${h-6}" text-anchor="middle" font-size="10" fill="#8A9BC7">${months[i]}</text>`;
+  }).join("");
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="210">
+      <defs>
+        <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#00D4FF"/>
+          <stop offset="100%" stop-color="#00D4FF" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      ${grid}
+      ${bars}
+      ${xlabels}
+    </svg>`;
+
+  wrap.querySelectorAll(".area-hit").forEach((rect,idx)=>{
+    const targetY = parseFloat(rect.getAttribute("data-target-y"));
+    const targetH = parseFloat(rect.getAttribute("data-target-h"));
+    animateValue(0,1, animate? 700+idx*60 : 0, (t)=>{
+      rect.setAttribute("y", padT+chartH - (padT+chartH-targetY)*t);
+      rect.setAttribute("height", targetH*t);
+    });
+    rect.addEventListener("mousemove", (evt)=>{
+      const i = +rect.getAttribute("data-i");
+      showTooltip(evt, months[i], values[i].toFixed(1)+"% conversion");
+    });
+    rect.addEventListener("mouseleave", hideTooltip);
+  });
+}
+
+/* =========================================================
+   MASTER RENDER
+========================================================= */
+function renderAll(key, animate){
+  const data = DATA[key];
+  setKPIs(data, animate);
+  updateCircGauge(data.salesScore, animate);
+  updateDonut(data.retention.retained, data.retention.churned, animate);
+  updateHBarGauge(data.leadQuality, animate);
+  updateSemiGauge(data.targetAchievement, animate);
+  renderStackedBar(data, animate);
+  renderLineChart(data, animate);
+  renderAreaChart(data, animate);
+  prevValues = Object.assign({}, prevValues, {targetAchievement: data.targetAchievement});
+}
+
+document.getElementById("productSelect").addEventListener("change", (e)=>{
+  currentKey = e.target.value;
+  renderAll(currentKey, true);
+});
+document.addEventListener("mousemove", moveTooltip);
+
+/* Init */
+renderStackedLegend();
+renderCircGauge();
+renderDonut();
+renderHBarGauge();
+renderSemiGauge();
+window.addEventListener("load", ()=>{
+  renderAll(currentKey, true);
+});
+</script>
+</body>
+</html>
